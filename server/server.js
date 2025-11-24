@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import bodyParser from 'body-parser'
 import { config } from './config.js'
 import { supabase } from './supabase.js'
@@ -7,21 +6,18 @@ import { supabase } from './supabase.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// CORS - ПОЛНОСТЬЮ ОТКЛЮЧЕН, разрешаем ВСЁ
+// БЕЗ CORS - разрешаем всё
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', '*')
-  res.header('Access-Control-Allow-Headers', '*')
-  res.header('Access-Control-Expose-Headers', '*')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', '*')
   
   if (req.method === 'OPTIONS') {
-    return res.status(200).send()
+    return res.sendStatus(200)
   }
   
   next()
 })
-
-app.use(cors())
 
 app.use(bodyParser.json())
 
