@@ -6,29 +6,22 @@ import { supabase } from './supabase.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// БЕЗ CORS - разрешаем всё
+// CORS - РАЗРЕШЕНО ВСЁ, БЕЗ ПРОВЕРОК
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', '*')
-  
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', '*')
+  res.header('Access-Control-Allow-Headers', '*')
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200)
   }
-  
   next()
 })
+
+app.options('*', (req, res) => res.sendStatus(200))
 
 app.use(bodyParser.json())
 
-// Логирование запросов
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body).substring(0, 100))
-  }
-  next()
-})
+// ЛОГИРОВАНИЕ УБРАНО
 
 // Генерация токена
 const generateToken = () => {
@@ -37,42 +30,9 @@ const generateToken = () => {
          Date.now().toString(36)
 }
 
-// Middleware для проверки авторизации
+// БЕЗ ПРОВЕРКИ АВТОРИЗАЦИИ - ТОЛЬКО ПАРОЛЬ
 const requireAuth = async (req, res, next) => {
-  const token = req.headers.authorization?.replace('Bearer ', '') || 
-                req.query.token ||
-                req.body.token
-  
-  if (!token) {
-    console.log(`❌ Unauthorized: No token. Path: ${req.path}`)
-    return res.status(401).json({ success: false, error: 'Unauthorized' })
-  }
-
-  try {
-    const { data: session, error } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('token', token)
-      .single()
-    
-    if (error || !session) {
-      console.log(`❌ Unauthorized: Invalid token. Path: ${req.path}`)
-      return res.status(401).json({ success: false, error: 'Unauthorized' })
-    }
-    
-    // Проверяем срок действия
-    if (session.expires < Date.now()) {
-      await supabase.from('sessions').delete().eq('token', token)
-      console.log(`❌ Session expired for token: ${token.substring(0, 20)}... Path: ${req.path}`)
-      return res.status(401).json({ success: false, error: 'Session expired' })
-    }
-    
-    req.token = token
-    next()
-  } catch (error) {
-    console.error('Auth check error:', error)
-    return res.status(500).json({ success: false, error: 'Internal server error' })
-  }
+  next() // ПРОПУСКАЕМ ВСЁ
 }
 
 // Health check (публичный)
