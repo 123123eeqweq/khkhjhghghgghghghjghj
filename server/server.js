@@ -7,17 +7,23 @@ import { supabase } from './supabase.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware - разрешаем все CORS запросы
-app.use(cors({
-  origin: '*', // Разрешаем все домены
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}))
-app.use(bodyParser.json())
+// CORS - ПОЛНОСТЬЮ ОТКЛЮЧЕН, разрешаем ВСЁ
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', '*')
+  res.header('Access-Control-Allow-Headers', '*')
+  res.header('Access-Control-Expose-Headers', '*')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).send()
+  }
+  
+  next()
+})
 
-// Обработка preflight запросов
-app.options('*', cors())
+app.use(cors())
+
+app.use(bodyParser.json())
 
 // Логирование запросов
 app.use((req, res, next) => {
