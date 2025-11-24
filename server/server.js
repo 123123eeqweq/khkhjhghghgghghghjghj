@@ -1,17 +1,24 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import { config } from './config.js'
 import { supabase } from './supabase.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 // CORS - РАЗРЕШАЕМ ВСЁ БЕЗ ОГРАНИЧЕНИЙ
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', '*')
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.sendStatus(200)
+})
+
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', '*')
+  res.header('Access-Control-Allow-Credentials', 'true')
   
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200)
@@ -22,53 +29,23 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json())
 
-const generateToken = () => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15) + 
-         Date.now().toString(36)
-}
-
-// БЕЗ ПРОВЕРКИ - ВСЁ РАЗРЕШЕНО
-const requireAuth = async (req, res, next) => {
-  next()
-}
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
 app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { password } = req.body
-    
-    if (password === config.PASSWORD) {
-      const token = generateToken()
-      const expires = Date.now() + config.SESSION_DURATION
-      
-      await supabase.from('sessions').insert({
-        token,
-        expires,
-        created_at: Date.now()
-      })
-      
-      res.json({ success: true, token, expires })
-    } else {
-      res.status(401).json({ success: false, error: 'Неверный пароль' })
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера', details: error.message })
-  }
+  res.json({ success: true, token: 'no-auth', expires: Date.now() + 999999999999 })
 })
 
-app.get('/api/auth/check', requireAuth, (req, res) => {
+app.get('/api/auth/check', (req, res) => {
   res.json({ success: true, valid: true })
 })
 
-app.post('/api/auth/logout', requireAuth, async (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   res.json({ success: true })
 })
 
-app.get('/api/tasks/:cellNumber', requireAuth, async (req, res) => {
+app.get('/api/tasks/:cellNumber', async (req, res) => {
   try {
     const { cellNumber } = req.params
     const { data, error } = await supabase
@@ -87,7 +64,7 @@ app.get('/api/tasks/:cellNumber', requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/tasks/:cellNumber', requireAuth, async (req, res) => {
+app.post('/api/tasks/:cellNumber', async (req, res) => {
   try {
     const { cellNumber } = req.params
     const tasks = req.body
@@ -103,7 +80,7 @@ app.post('/api/tasks/:cellNumber', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/completed-days', requireAuth, async (req, res) => {
+app.get('/api/completed-days', async (req, res) => {
   try {
     const { data } = await supabase
       .from('completed_days')
@@ -123,7 +100,7 @@ app.get('/api/completed-days', requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/completed-days', requireAuth, async (req, res) => {
+app.post('/api/completed-days', async (req, res) => {
   try {
     const completedDays = req.body
     
@@ -159,7 +136,7 @@ app.post('/api/completed-days', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/finances', requireAuth, async (req, res) => {
+app.get('/api/finances', async (req, res) => {
   try {
     let { data, error } = await supabase
       .from('finances')
@@ -189,7 +166,7 @@ app.get('/api/finances', requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/finances', requireAuth, async (req, res) => {
+app.post('/api/finances', async (req, res) => {
   try {
     const { capital, expenses } = req.body
     
@@ -209,7 +186,7 @@ app.post('/api/finances', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/goals', requireAuth, async (req, res) => {
+app.get('/api/goals', async (req, res) => {
   try {
     let { data, error } = await supabase
       .from('goals')
@@ -235,7 +212,7 @@ app.get('/api/goals', requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/goals', requireAuth, async (req, res) => {
+app.post('/api/goals', async (req, res) => {
   try {
     const goals = req.body
     
@@ -254,7 +231,7 @@ app.post('/api/goals', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/all-data', requireAuth, async (req, res) => {
+app.get('/api/all-data', async (req, res) => {
   try {
     const { data: allTasks } = await supabase.from('tasks').select('cell_number, tasks')
     const tasks = {}
